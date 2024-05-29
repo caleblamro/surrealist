@@ -48,6 +48,7 @@ import {
 	flexible,
 	_for,
 	from,
+	functionKeyword,
 	group,
 	mtree,
 	mtree_cache,
@@ -401,6 +402,7 @@ const tryMapped = {
 	create: [createPermissions],
 	update: [updatePermissions],
 	delete: [deletePermissions],
+	function: [functionKeyword],
 	not: [opNot],
 	in: [opIn],
 };
