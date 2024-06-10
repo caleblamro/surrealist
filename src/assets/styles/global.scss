@@ -32,6 +32,11 @@ body.mod .cm-record-link {
 	cursor: pointer;
 }
 
+body.mod .cm-url > span {
+	text-decoration: underline currentColor;
+	cursor: pointer;
+}
+
 .mantine-ActionIcon-root:hover {
     --ai-hover-color: white;
 }

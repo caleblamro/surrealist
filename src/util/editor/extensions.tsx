@@ -4,7 +4,7 @@ import { getSetting } from "../config";
 import { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirror/commands";
 import { searchKeymap, highlightSelectionMatches } from "@codemirror/search";
 import { autocompletion, completionKeymap, closeBrackets, closeBracketsKeymap, CompletionSource, snippetCompletion } from "@codemirror/autocomplete";
-import { keymap, highlightSpecialChars, drawSelection, dropCursor, rectangularSelection, crosshairCursor, lineNumbers, highlightActiveLineGutter, EditorView, Decoration } from "@codemirror/view";
+import { keymap, highlightSpecialChars, drawSelection, dropCursor, rectangularSelection, crosshairCursor, lineNumbers, highlightActiveLineGutter, EditorView, Decoration, MatchDecorator, ViewPlugin, DecorationSet, ViewUpdate } from "@codemirror/view";
 import { syntaxHighlighting, indentOnInput, bracketMatching, foldGutter, foldKeymap, codeFolding, indentUnit, syntaxTree } from "@codemirror/language";
 import { indentationMarkers } from '@replit/codemirror-indentation-markers';
 import { themeColor } from "../mantine";
@@ -44,6 +44,7 @@ export const editorBase = (): Extension => [
 	rectangularSelection(),
 	crosshairCursor(),
 	colorTheme(),
+	openUrl(),
 	history({
 		newGroupDelay: 250
 	}),
@@ -281,3 +282,50 @@ export const selectionChanged = (cb: (ranges: SelectionRange) => void): Extensio
 		}
 	});
 };
+
+const URL_MARK = Decoration.mark({
+	class: "cm-url",
+	attributes: {
+		title: "Cmd/Ctrl + Click to open URL"
+	}
+});
+
+const URL_MATCHER = new MatchDecorator({
+	regexp: /https?:\/\/(www\.)?[\w#%+.:=@~-]{1,256}\.[\d()A-Za-z]{1,6}\b([\w#%&()+./:=?@~-]*)/g,
+	decoration: () => Decoration.mark(RECORD_LINK_MARK)
+});
+
+/**
+ * An extension which allows opening URLs
+ */
+export const openUrl: () => Extension = () => [
+	ViewPlugin.fromClass(class {
+
+		public placeholders: DecorationSet;
+
+		public constructor(view: EditorView) {
+			this.placeholders = URL_MATCHER.createDeco(view);
+		}
+
+		public update(update: ViewUpdate) {
+			this.placeholders = URL_MATCHER.updateDeco(update, this.placeholders);
+		}
+	}, {
+		decorations: instance => instance.placeholders,
+		provide: plugin => EditorView.atomicRanges.of(view => {
+			return view.plugin(plugin)?.placeholders || Decoration.none;
+		})
+	}),
+	Prec.highest(EditorView.domEventHandlers({
+		click: (event, view) => {
+			if (!isModKey(event))
+				return false;
+
+			const el = event.target as Element;
+			const url = el.closest('.cm-url');
+			const link = url?.textContent;
+
+			console.log(link);
+		}
+	}))
+];
